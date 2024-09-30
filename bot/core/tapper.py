@@ -145,11 +145,11 @@ class Tapper:
             else:
                 ref_id = 'boink295784290'
 
-            self.start_param = random.choices([ref_id, "boink295784290"], weights=[75, 25], k=1)[0]
+            self.start_param = 'boink295784290'
             peer = await self.tg_client.resolve_peer('boinker_bot')
             InputBotApp = types.InputBotAppShortName(bot_id=peer, short_name="boinkapp")
 
-            web_view = await self_tg_client.invoke(RequestAppWebView(
+            web_view = await self.tg_client.invoke(RequestAppWebView(
                 peer=peer,
                 app=InputBotApp,
                 platform='android',
@@ -338,7 +338,7 @@ class Tapper:
                     curr_friend_boinker_level = 0
                     already_claimed_reward_level = 0
 
-                    if 'completedBoinkers' in friend['boinkers']:
+                    if 'boinkers' in friend and 'completedBoinkers' in friend['boinkers']:
                         curr_friend_boinker_level = friend['boinkers']['completedBoinkers']
 
                     if curr_friend_boinker_level == 0:
@@ -486,7 +486,7 @@ class Tapper:
                         continue
 
                     logger.info(f"<light-yellow>{self.session_name}</light-yellow> | 💤 Waiting {seconds_to_allow_claim} seconds before claiming reward... 💤")
-                    await asyncio.sleep(seconds_to_allow_claim)
+                    await asyncio.sleep(delay=seconds_to_allow_claim)
 
                     try:
                         claim_url = f"https://boink.astronomica.io/api/rewardedActions/claimRewardedAction/{name_id}?p=android"
@@ -502,7 +502,7 @@ class Tapper:
                         logger.info(f"<light-yellow>{self.session_name}</light-yellow> | 😢 Error claiming reward for {name_id}: {claim_error}")
                         break
 
-                await asyncio.sleep(1)
+                await asyncio.sleep(delay=1)
 
         except Exception as error:
             logger.info(f"<light-yellow>{self.session_name}</light-yellow> | 😢 Error performing tasks: {error}")
@@ -516,7 +516,7 @@ class Tapper:
             logger.info(f"<light-yellow>{self.session_name}</light-yellow> | Ad task {name_id} clicked successfully")
 
             logger.info(f"<light-yellow>{self.session_name}</light-yellow> | 💤 Sleep 5 seconds before close ad... 💤")
-            await asyncio.sleep(5)
+            await asyncio.sleep(delay=5)
 
             # Confirm ad watched
             ad_watched_url = "https://boink.astronomica.io/api/rewardedActions/ad-watched?p=android"
@@ -529,7 +529,7 @@ class Tapper:
                 seconds_to_allow_claim = action['secondsToAllowClaim'] + 5
 
             logger.info(f"<light-yellow>{self.session_name}</light-yellow> | 💤 Sleep {seconds_to_allow_claim} seconds before claiming ad reward... 💤")
-            await asyncio.sleep(seconds_to_allow_claim)
+            await asyncio.sleep(delay=seconds_to_allow_claim)
 
             # Claim the reward
             claim_url = f"https://boink.astronomica.io/api/rewardedActions/claimRewardedAction/{name_id}?p=android"
@@ -557,7 +557,7 @@ class Tapper:
         if settings.USE_RANDOM_DELAY_IN_RUN:
             random_delay = random.randint(settings.RANDOM_DELAY_IN_RUN[0], settings.RANDOM_DELAY_IN_RUN[1])
             logger.info(f"<light-yellow>{self.session_name}</light-yellow> | Bot will start in <ly>{random_delay}s</ly>")
-            await asyncio.sleep(random_delay)
+            await asyncio.sleep(delay=random_delay)
 
         access_token = None
         refresh_token = None
@@ -637,9 +637,19 @@ class Tapper:
                         await asyncio.sleep(delay=4)
 
                     upgrade_success = True
-                    while upgrade_success:
-                        upgrade_success = await self.upgrade_boinker(http_client=http_client)
-                        await asyncio.sleep(delay=3)
+                    tries = 2
+                    while upgrade_success and tries > 0:
+                        result = await self.upgrade_boinker(http_client=http_client)
+                        if not result:
+                            if tries == 0:
+                                upgrade_success = false
+                            else:
+                                user_info = await self.get_user_info(http_client=http_client)
+                                if user_info['currencySoft'] < 20000000:
+                                    tries -= 1
+                                else:
+                                    upgrade_success = false
+                        await asyncio.sleep(delay=random.randint(2, 4))
 
                 logger.info(f"<light-yellow>{self.session_name}</light-yellow> | 💤 sleep 30 minutes 💤")
                 await asyncio.sleep(delay=1800)
